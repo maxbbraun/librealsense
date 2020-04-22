@@ -10,25 +10,36 @@ int main(int argc, char * argv[]) try
 {
     rs2::log_to_console(RS2_LOG_SEVERITY_ERROR);
     // Create a simple OpenGL window for rendering:
-    window app(1280, 720, "RealSense Capture Example");
+    window app(640, 480, "RealSense Capture");
 
     // Declare depth colorizer for pretty visualization of depth data
     rs2::colorizer color_map;
-    // Declare rates printer for showing streaming rates of the enabled streams.
-    rs2::rates_printer printer;
+
+    // Create post-processing filters.
+    rs2::decimation_filter decimation_filter(2);
+    rs2::disparity_transform depth_to_disparity(true);
+    rs2::spatial_filter spatial_filter(0.5, 20, 2, 4);
+    rs2::temporal_filter temporal_filter(0.4, 20, 3);
+    rs2::hole_filling_filter hole_filling_filter(1);
+    rs2::disparity_transform disparity_to_depth(false);
 
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
 
-    // Start streaming with default recommended configuration
-    // The default video configuration contains Depth and Color streams
-    // If a device is capable to stream IMU data, both Gyro and Accelerometer are enabled by default
-    pipe.start();
+    // Start streaming with a simple configuration
+    rs2::config config;
+    config.enable_stream(RS2_STREAM_DEPTH, -1, 640, 480, RS2_FORMAT_ANY, 15);
+    pipe.start(config);
 
     while (app) // Application still alive?
     {
         rs2::frameset data = pipe.wait_for_frames().    // Wait for next set of frames from the camera
-                             apply_filter(printer).     // Print each enabled stream frame rate
+                             apply_filter(decimation_filter).
+                             apply_filter(depth_to_disparity).
+                             apply_filter(spatial_filter).
+                             apply_filter(temporal_filter).
+                             apply_filter(hole_filling_filter).
+                             apply_filter(disparity_to_depth).
                              apply_filter(color_map);   // Find and colorize the depth data
 
         // The show method, when applied on frameset, break it to frames and upload each frame into a gl textures

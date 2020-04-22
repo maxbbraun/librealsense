@@ -447,7 +447,8 @@ public:
         glEnd();
         glDisable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
-        draw_text(int(0.05f * r.w), int(0.05f * r.h), rs2_stream_to_string(_stream_type));
+        // HACK: Don't draw stream type text overlay.
+        // draw_text(int(0.05f * r.w), int(0.05f * r.h), rs2_stream_to_string(_stream_type));
     }
 
     GLuint get_gl_handle() { return _gl_handle; }
@@ -491,10 +492,14 @@ public:
         : _width(width), _height(height)
     {
         glfwInit();
-        win = glfwCreateWindow(width, height, title, nullptr, nullptr);
+        // HACK: Go fullscreen.
+        win = glfwCreateWindow(width, height, title, glfwGetPrimaryMonitor(), nullptr);
         if (!win)
             throw std::runtime_error("Could not open OpenGL window, please check your graphic drivers or use the textual SDK tools");
         glfwMakeContextCurrent(win);
+
+        // HACK: Hide mouse pointer.
+        glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
         glfwSetWindowUserPointer(win, this);
         glfwSetMouseButtonCallback(win, [](GLFWwindow * w, int button, int action, int mods)
@@ -713,7 +718,9 @@ private:
             float cell_x_postion = (float)(mod * grid.w);
             if (mod == 0) curr_line++;
             float cell_y_position = curr_line * grid.h;
-            float2 margin = { grid.w * 0.02f, grid.h * 0.02f };
+            // HACK: Remove margin.
+            // float2 margin = { grid.w * 0.02f, grid.h * 0.02f };
+            float2 margin = {0, 0};
             auto r = rect{ cell_x_postion + margin.x, cell_y_position + margin.y, grid.w - 2 * margin.x, grid.h };
             rv.push_back(r.adjust_ratio(float2{ fw, fh }));
         }
